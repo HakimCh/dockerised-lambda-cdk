@@ -66,6 +66,9 @@ export class DynamicStack extends cdk.Stack {
         });
     }
 
+    /**
+     * @TODO Not used for the moment
+     */
     private calculateDependenciesHash(workDirectory: string): string {
         const packageLockPath = path.resolve(workDirectory, 'app', 'package-lock.json');
 
