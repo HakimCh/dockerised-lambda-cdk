@@ -30,6 +30,7 @@ RUN yarn add --production --non-interactive --no-bin-links ${DEPENDENCIES_INLINE
 FROM base AS build
 
 ARG HANDLER_BASENAME
+ARG HANDLER_FILENAME
 ARG DEPENDENCIES_ARGS
 
 WORKDIR ${LAMBDA_TASK_ROOT}
@@ -37,7 +38,7 @@ WORKDIR ${LAMBDA_TASK_ROOT}
 COPY ./packages/server/src/app/${HANDLER_BASENAME} ./src/${HANDLER_BASENAME}/
 
 RUN --mount=type=cache,target=/root/.npm \
-    npx esbuild src/${HANDLER_BASENAME}/index.ts \
+    npx esbuild src/${HANDLER_BASENAME}/${HANDLER_FILENAME}.ts \
     --bundle \
     --minify \
     --platform=node \
@@ -50,10 +51,16 @@ RUN --mount=type=cache,target=/root/.npm \
 
 FROM public.ecr.aws/lambda/nodejs:20
 
+ARG HANDLER_NAME
+
 WORKDIR ${LAMBDA_TASK_ROOT}
 
 COPY --from=dependencies /app/packages/server/node_modules ./node_modules/
 COPY --from=dependencies /app/packages/server/fonts ./fonts/
 COPY --from=build ${LAMBDA_TASK_ROOT}/index.js ./
 
-CMD [ "index.handler" ]
+RUN echo "#!/bin/bash" > /entry.sh && \
+    echo "exec /lambda-entrypoint.sh \"${LAMBDA_TASK_ROOT}/index.${HANDLER_NAME}\"" >> /entry.sh && \
+    chmod +x /entry.sh
+
+ENTRYPOINT ["/entry.sh"]

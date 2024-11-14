@@ -2,29 +2,6 @@
 
 A minimalist project demonstrating how to deploy AWS Lambda functions using Docker and CDK, optimizing shared dependencies (Prisma, Sharp, JSDOM) through multi-stage builds.
 
-## Project Structure
-
-```markdown
-project-root/
-├── app/
-│   ├── package.json
-│   ├── prisma/
-│   ├── fonts/
-│   └── src/webhooks/        # Lambda handlers
-│       ├── webhook-1/
-│       │   └── index.ts
-│       └── webhook-2/
-│           └── index.ts
-├── infra/
-│   └── stacks/
-│       └── dynamic/
-│           ├── index.ts     # CDK stack
-│           └── docker/
-│               └── Dockerfile
-├── cdk.json
-└── package.json           
-```
-
 ## Key Features
 
 - 🐳 Docker multi-stage builds for optimized images
@@ -50,7 +27,7 @@ cd app && npm install && npm run build
 ### Deploy lambdas
 
 ```bash
-cd infra && npm install
+cd infrastructure && npm install
 
 npm run deploy
 ```
@@ -60,15 +37,19 @@ npm run deploy
 ```shell
 # Build local image
 docker build --progress=plain --platform linux/amd64 -t lambda-test \
-  --build-arg HANDLER_FILENAME=index.handler \
+  --build-arg HANDLER_NAME=handler \
+  --build-arg HANDLER_FILENAME=index \
   --build-arg HANDLER_BASENAME=webhooks/webhook-1 \
-  -f stacks/dynamic/docker/Dockerfile ../
+  --build-arg HANDLER_NAME=handler \
+  --build-arg DEPENDENCIES_INLINE="prisma sharp jsdom" \
+  --build-arg DEPENDENCIES_ARGS="--external:prisma --external:sharp --external:jsdom --external:lodash" \
+  -f packages/server/src/infrastructure/stacks/dynamic/docker/Dockerfile .
   
 # Open image shell 
 docker run -it --entrypoint /bin/bash lambda-test
 
 # Test the Lambda locally
-docker run -p 9000:8080 lambda-test app/webhooks/webhook-1/index.handler
+docker run -p 9000:8080 lambda-test ./index.handler
 
 # Invoke the lambda
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'

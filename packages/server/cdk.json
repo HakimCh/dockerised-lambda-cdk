@@ -1,0 +1,7 @@
+{
+  "app": "npx ts-node src/infrastructure/index.ts",
+  "output": "/Users/xligh/work-projects/cdk.out",
+  "context": {
+    "rootPath": "../../"
+  }
+}
